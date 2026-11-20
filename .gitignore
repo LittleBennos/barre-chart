@@ -1,3 +1,4 @@
 # Raw source data stays local: some sources (competition results) name children.
 # Commit only the aggregated files the site shows.
 data/raw/
+__pycache__/

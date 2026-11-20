@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Barre Chart</title>
+<meta name="description" content="Children aged 5-14 for each dance studio in Melbourne's inner west, by area.">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --link: #256abf;
+    --bar: #2a78d6;
+    --none: #e1e0d9;
+    /* Sequential blue: low values sit near the surface, high values are strongest. */
+    --seq-lo: #9ec5f4;
+    --seq-hi: #104281;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --link: #86b6ef;
+      --bar: #3987e5;
+      --none: #383835;
+      --seq-lo: #184f95;
+      --seq-hi: #b7d3f6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+  a { color: var(--link); }
+  .kicker { margin: 0 0 4px; color: var(--muted); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+  h1 { margin: 0 0 12px; font-size: 28px; line-height: 1.2; font-weight: 650; }
+  h2 { margin: 0 0 4px; font-size: 18px; line-height: 1.3; font-weight: 600; }
+  .lede { margin: 0 0 24px; color: var(--ink-2); font-size: 17px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px 16px;
+    margin: 0 0 20px;
+  }
+  .sub { margin: 0 0 12px; color: var(--ink-2); font-size: 14px; }
+  .source { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 0 0 8px; color: var(--ink-2); font-size: 12px; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch i { width: 14px; height: 14px; border-radius: 3px; background: var(--none); }
+  .chart svg { display: block; max-width: 100%; height: auto; }
+  details > summary { cursor: pointer; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .notes { color: var(--ink-2); font-size: 15px; }
+  .notes h2 { color: var(--ink); margin-top: 28px; }
+  .notes ul { padding-left: 20px; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="kicker">Barre Chart</p>
+  <h1>Kids per dance studio in Melbourne's inner west</h1>
+  <p class="lede" id="lede">How many children aged 5-14 live in each area, for every dance studio we could confirm there.</p>
+
+  <section class="card">
+    <h2>Children per studio, by area</h2>
+    <p class="sub">Each area is shaded by children per studio, using the key. Grey means we could not confirm any studio inside the area; children there may still go to one next door. Hover or tap an area for its numbers.</p>
+    <div class="legend"><div id="map-legend"></div><span class="swatch"><i></i>No studio confirmed</span></div>
+    <div class="chart" id="map" role="img" aria-label="Map of 12 inner-west areas shaded by children aged 5-14 per dance studio"></div>
+    <p class="source" data-source></p>
+  </section>
+
+  <section class="card">
+    <h2>Ranked</h2>
+    <p class="sub">Children aged 5-14 per studio. Longer bars mean each studio serves more children.</p>
+    <div class="chart" id="bars"></div>
+    <p class="source" data-source></p>
+  </section>
+
+  <details class="card">
+    <summary>Show the numbers</summary>
+    <table>
+      <thead><tr><th>Area</th><th class="num">Children 5-14</th><th class="num">Studios</th><th class="num">Children per studio</th></tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </details>
+
+  <section class="notes">
+    <h2>How we counted</h2>
+    <p>Areas are the 12 ABS Statistical Areas Level 2 (suburb-sized areas) that make up the City of Maribyrnong and Hobsons Bay. Children are ABS estimates of residents aged 5-14.</p>
+    <p>A studio counts if it runs weekly or term classes for children aged about 5-14 at a venue inside the area. That includes calisthenics clubs and performing arts schools with dance classes. Holiday programs, one-off workshops, adult classes and theatre classes where dance is only one part do not count. Each studio counts once for each venue. We checked every studio against its own website, Instagram or council listing.</p>
+    <p>Treat the counts as a floor. A small studio with no website or social media could be missing, and children often cross area lines for classes.</p>
+    <h2>Sources</h2>
+    <ul>
+      <li>Children: Australian Bureau of Statistics, <a href="https://www.abs.gov.au/statistics/people/population/regional-population-age-and-sex">Regional population by age and sex</a>, estimates at 30 June <span data-year>2025</span>. CC BY 4.0.</li>
+      <li>Area boundaries: Australian Bureau of Statistics, <a href="https://www.abs.gov.au/statistics/standards/australian-statistical-geography-standard-asgs-edition-3">Australian Statistical Geography Standard, Edition 3</a>. CC BY 4.0.</li>
+      <li>Studios: counted by Barre Chart from studios' own websites, social media and council directories, checked <span data-checked>November 2026</span>. Studio names are not published.</li>
+    </ul>
+  </section>
+
+  <footer>Barre Chart: Victoria's dance scene, in data. <a href="https://github.com/LittleBennos/barre-chart">Code and method on GitHub</a>.</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.16/dist/plot.umd.min.js"></script>
+<script>
+const fmt = d3.format(",");
+const shortName = name => name.replace(" - ", "\n");
+const tipText = p => p.studios
+  ? `${p.sa2_name}\n${fmt(p.children_per_studio)} children per studio\n${fmt(p.children_5_14)} children, ${p.studios} studio${p.studios === 1 ? "" : "s"}`
+  : `${p.sa2_name}\nNo studio confirmed\n${fmt(p.children_5_14)} children`;
+
+function tokens() {
+  const style = getComputedStyle(document.documentElement);
+  const v = name => style.getPropertyValue(name).trim();
+  return { surface: v("--surface"), ink: v("--ink"), ink2: v("--ink-2"), muted: v("--muted"), grid: v("--grid"),
+    axis: v("--axis"), bar: v("--bar"), none: v("--none"), seqLo: v("--seq-lo"), seqHi: v("--seq-hi") };
+}
+
+function colorScale(areas, t) {
+  const values = areas.filter(a => a.studios > 0).map(a => a.children_per_studio);
+  return { type: "linear", domain: d3.extent(values), range: [t.seqLo, t.seqHi], interpolate: "lab" };
+}
+
+function drawMap(geo, areas, t, width) {
+  const plotStyle = { background: "transparent", color: t.ink, fontFamily: "inherit", fontSize: "11px" };
+  const withStudio = geo.features.filter(f => f.properties.studios > 0);
+  const without = geo.features.filter(f => f.properties.studios === 0);
+  return Plot.plot({
+    width, height: Math.round(width * 0.8), margin: 0, style: plotStyle,
+    projection: { type: "mercator", domain: geo, inset: 6 },
+    color: colorScale(areas, t),
+    marks: [
+      Plot.geo(without, { fill: t.none, stroke: t.surface, strokeWidth: 2 }),
+      Plot.geo(withStudio, { fill: f => f.properties.children_per_studio, stroke: t.surface, strokeWidth: 2 }),
+      // Names collide on narrow screens; there the tooltip and the ranked chart carry them.
+      width >= 560 ? Plot.text(geo.features, Plot.geoCentroid({ text: f => shortName(f.properties.sa2_name), fill: t.ink,
+        stroke: t.surface, strokeWidth: 3, paintOrder: "stroke", lineHeight: 1.1 })) : null,
+      Plot.tip(geo.features, Plot.pointer(Plot.geoCentroid({ title: f => tipText(f.properties), fill: t.surface, stroke: t.axis }))),
+    ],
+  });
+}
+
+function drawLegend(areas, t) {
+  return Plot.legend({
+    color: colorScale(areas, t), label: "Children per studio", width: 240, tickFormat: fmt,
+    style: { background: "transparent", color: t.ink2, fontFamily: "inherit", fontSize: "11px" },
+  });
+}
+
+function rankOrder(areas) {
+  // Areas with no confirmed studio first, then the most children per studio.
+  return [...areas].sort((a, b) => (b.children_per_studio ?? Infinity) - (a.children_per_studio ?? Infinity)
+    || a.sa2_name.localeCompare(b.sa2_name));
+}
+
+function drawBars(areas, t, width) {
+  const narrow = width < 520;
+  const withStudio = areas.filter(a => a.studios > 0);
+  const without = areas.filter(a => a.studios === 0);
+  return Plot.plot({
+    width, height: areas.length * 36 + 44,
+    marginLeft: narrow ? 108 : 180, marginRight: 52, marginTop: 4, marginBottom: 36,
+    style: { background: "transparent", color: t.ink2, fontFamily: "inherit", fontSize: "12px" },
+    x: { label: "Children aged 5-14 per studio", tickFormat: fmt, nice: true, ticks: narrow ? 3 : 5 },
+    y: { domain: rankOrder(areas).map(a => a.sa2_name), label: null, padding: 0.34 },
+    marks: [
+      Plot.gridX({ stroke: t.grid, strokeOpacity: 1, ticks: narrow ? 3 : 5 }),
+      Plot.axisY({ tickSize: 0, lineWidth: narrow ? 9 : 22 }),
+      Plot.barX(withStudio, { x: "children_per_studio", y: "sa2_name", fill: t.bar, rx2y1: 4, rx2y2: 4,
+        title: tipText, tip: { fill: t.surface, stroke: t.axis } }),
+      Plot.text(withStudio, { x: "children_per_studio", y: "sa2_name", text: d => fmt(d.children_per_studio),
+        dx: 6, textAnchor: "start", fill: t.ink2 }),
+      Plot.text(without, { x: 0, y: "sa2_name", text: () => "No studio confirmed", dx: 6, textAnchor: "start", fill: t.muted }),
+      Plot.ruleX([0], { stroke: t.axis }),
+    ],
+  });
+}
+
+function fillTable(areas) {
+  const body = document.getElementById("table-body");
+  body.replaceChildren(...rankOrder(areas).map(a => {
+    const row = document.createElement("tr");
+    const cells = [a.sa2_name, fmt(a.children_5_14), String(a.studios), a.studios ? fmt(a.children_per_studio) : "No studio confirmed"];
+    cells.forEach((text, i) => {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (i > 0) td.className = "num";
+      row.append(td);
+    });
+    return row;
+  }));
+}
+
+function describe(geo, areas) {
+  const children = d3.sum(areas, a => a.children_5_14);
+  const studios = d3.sum(areas, a => a.studios);
+  const empty = areas.filter(a => a.studios === 0).length;
+  const words = ["no", "one", "two", "three", "four", "five", "six"];
+  document.getElementById("lede").textContent =
+    `We confirmed ${studios} dance studios across these ${areas.length} areas: about one for every ${fmt(Math.round(children / studios))} children aged 5-14. ` +
+    `${empty ? `${(words[empty] ?? empty).replace(/^./, c => c.toUpperCase())} area${empty === 1 ? "" : "s"} had no studio we could confirm.` : ""}`;
+  const checked = new Date(geo.meta.studios_checked).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  document.querySelectorAll("[data-year]").forEach(el => { el.textContent = geo.meta.population_year; });
+  document.querySelectorAll("[data-checked]").forEach(el => { el.textContent = checked; });
+  document.querySelectorAll("[data-source]").forEach(el => {
+    el.textContent = `Source: ABS population estimates (June ${geo.meta.population_year}) and boundaries; studios counted by Barre Chart, checked ${checked}.`;
+  });
+}
+
+function rewind(geometry) {
+  const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+  polygons.forEach(rings => rings.forEach(ring => ring.reverse()));
+}
+
+function render(geo, areas) {
+  const t = tokens();
+  const map = document.getElementById("map");
+  const bars = document.getElementById("bars");
+  map.replaceChildren(drawMap(geo, areas, t, map.clientWidth));
+  document.getElementById("map-legend").replaceChildren(drawLegend(areas, t));
+  bars.replaceChildren(drawBars(areas, t, bars.clientWidth));
+}
+
+fetch("data/inner-west.geojson")
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(geo => {
+    // ABS boundaries use the GeoJSON standard's anticlockwise rings; d3 reads those as
+    // "everything but the area", so flip any shape that covers more than half the globe.
+    for (const f of geo.features) if (d3.geoArea(f) > 2 * Math.PI) rewind(f.geometry);
+    const areas = geo.features.map(f => f.properties);
+    describe(geo, areas);
+    fillTable(areas);
+    render(geo, areas);
+    let timer;
+    const redraw = () => { clearTimeout(timer); timer = setTimeout(() => render(geo, areas), 150); };
+    addEventListener("resize", redraw);
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redraw);
+  })
+  .catch(() => {
+    document.getElementById("lede").textContent = "The data failed to load. Please try again later.";
+  });
+</script>
+</body>
+</html>
